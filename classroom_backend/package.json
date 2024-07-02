@@ -1,0 +1,23 @@
+{
+  "name": "classroom_backend",
+  "version": "1.0.0",
+  "description": "Classroom backend file",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon src/index.js"
+  },
+  "keywords": [
+    "nodejs",
+    "javascript",
+    "express",
+    "restApi"
+  ],
+  "author": "Amitkumar Singh, Vishal Yadav, Rohit Yadav",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "nodemon": "^3.1.4"
+  }
+}
