@@ -10,7 +10,7 @@ import {
     leaveClassRoom,
     joinClassRoom
 } from "../controllers/classroom.contoller.js";
-import { isAuthenticated } from "../middlewares/auth.middleware";
+import { isAuthenticated } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 router.use(isAuthenticated); // Apply isAuthenticated middleware to all routes in this file
@@ -24,7 +24,7 @@ router.route("/:classroomId/member")
     .post(addClassRoomMember)
     .patch(makeClassRoomOwner)
     .delete(removeClassRoomMember);
-router.route("/:classroomId/leave").patch(leaveClassRoom);
-router.route("/join-classroom").patch(joinClassRoom);
+router.route("/:classroomId/leave").delete(leaveClassRoom);
+router.route("/join-classroom").post(joinClassRoom);
 
 export default router;

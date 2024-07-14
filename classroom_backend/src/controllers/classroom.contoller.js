@@ -1,19 +1,20 @@
 import mongoose from "mongoose";
-import { ApiError } from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
-import { asyncHandler } from "../utils/asyncHandler";
-import { Classroom } from "../models/classroom.model";
-import { User } from "../models/user.model";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { Classroom } from "../models/classroom.model.js";
+import { User } from "../models/user.model.js";
 
 const getClassRoom = asyncHandler(async (req, res) => {
-    const classroomId = req.params.id;
+    const classroomId = req.params.classroomId;
+    console.log(req.params);
 
     if (!classroomId) {
         throw new ApiError(400, "Classroom ID is required");
     }
 
     try {
-        const classroom = await Classroom.findById(classroomId).populate("classroomOwner_Name").populate("classroomMembers");
+        const classroom = await Classroom.findById(classroomId).populate("classroomMembers");
     
         if(!classroom){
             throw new ApiError(404, "Classroom not found");
@@ -45,17 +46,24 @@ const createClassRoom = asyncHandler(async (req, res) => {
             classroomName,
             classroomDesc,
             classroomCode,
-            classroomOwner_Name: req.user?._id,
-            classroomOwnerId: req.user?._id,
+            classroomOwnerId: [req.user?._id],
             classroomMembers: [req.user?._id]
         });
+
+        return res
+        .status(201)
+        .json(new ApiResponse(
+            201,
+            classroom,
+            "Classroom created successfully"
+        ))
     }catch(error){
         throw new ApiError(500, error.message || "An error occurred while creating the classroom");
     }
 });
 
 const deleteClassRoom = asyncHandler(async (req, res) => {
-    const classroomId = req.params.id;
+    const classroomId = req.params.classroomId;
 
     if(!classroomId){
         throw new ApiError(400, "Classroom ID is required");
@@ -72,7 +80,7 @@ const deleteClassRoom = asyncHandler(async (req, res) => {
             throw new ApiError(403, "You are not authorized to delete this classroom");
         }
 
-        await classroom.remove();
+        await Classroom.deleteOne({ _id: classroomId });
 
         return res
         .status(200)
@@ -87,7 +95,7 @@ const deleteClassRoom = asyncHandler(async (req, res) => {
 });
 
 const updateClassRoom = asyncHandler(async (req, res) => {
-    const classroomId = req.params.id;
+    const classroomId = req.params.classroomId;
     const {classroomName, classroomDesc} = req.body;
 
     if(!classroomName || !classroomDesc){
@@ -124,7 +132,7 @@ const updateClassRoom = asyncHandler(async (req, res) => {
 
 const addClassRoomMember = asyncHandler(async (req, res) => {
 
-    const classroomId = req.params.id;
+    const classroomId = req.params.classroomId;
     const {email} = req.body;
 
     try {
@@ -164,7 +172,7 @@ const addClassRoomMember = asyncHandler(async (req, res) => {
 });
 
 const makeClassRoomOwner = asyncHandler(async (req, res) => {
-    const classroomId = req.params.id;
+    const classroomId = req.params.classroomId;
     const {email} = req.body;
 
     try {
@@ -188,7 +196,6 @@ const makeClassRoomOwner = asyncHandler(async (req, res) => {
         }
 
         classroom.classroomOwnerId.push(user._id);
-        classroom.classroomOwner_Name.push(user.username);
         await classroom.save();
 
         return res
@@ -204,7 +211,7 @@ const makeClassRoomOwner = asyncHandler(async (req, res) => {
 });
 
 const removeClassRoomMember = asyncHandler(async (req, res) => {
-    const classroomId = req.params.id;
+    const classroomId = req.params.classroomId;
     const {email} = req.body;
 
     try {
@@ -244,7 +251,7 @@ const removeClassRoomMember = asyncHandler(async (req, res) => {
 });
 
 const leaveClassRoom = asyncHandler(async (req, res) => {
-    const classroomId = req.params.id;
+    const classroomId = req.params.classroomId;
 
     try {
         const classroom = await Classroom.findById(classroomId);

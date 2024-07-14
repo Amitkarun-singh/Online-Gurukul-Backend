@@ -17,12 +17,6 @@ const classroomSchema = new Schema(
             required: [true, "Please enter classroom code"],
             unique: true
         },
-        classroomOwner_Name: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: "User"
-            }
-        ],
         classroomOwnerId: [
             {
                 type: Schema.Types.ObjectId,
