@@ -1,8 +1,7 @@
 import express from "express";
-import userRouter from "./routes/user.js";
 import { config } from "dotenv";
 import cookieParser from "cookie-parser";
-import errorMiddleware from "./middlewares/error.js";
+import errorMiddleware from "./middlewares/error.middleware.js";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
@@ -32,9 +31,21 @@ app.use(
     credentials: true,
   })
 );
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true
+}))
 
-// Using routes
-app.use("/api/v1/users", userRouter);
+app.use(express.json({limit: "16kb"}));
+app.use(express.urlencoded({extended: true, limit: "16kb"}));
+app.use(express.static("public"));
+
+
+//routes import
+import userRouter from './routes/user.route.js'
+
+//routes declaration
+app.use("/api/v1/users", userRouter)
 
 app.get("/", (req, res) => {
   res.send("Nice working");
@@ -43,22 +54,3 @@ app.get("/", (req, res) => {
 // Using Error Middleware
 app.use(errorMiddleware);
 export default app;
-
-
-// import express from "express";
-// import cors from "cors";
-// import cookieparser from "cookie-parser";
-
-// const app = express();
-
-// app.use(cors({
-//     origin: process.env.CORS_ORIGIN,
-//     credentials: true
-// }))
-
-// app.use(express.json({limit: "16kb"}));
-// app.use(express.urlencoded({extended: true, limit: "16kb"}));
-// app.use(express.static("public"));
-// app.use(cookieparser());
-
-// export default app;

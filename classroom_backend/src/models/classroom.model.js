@@ -7,6 +7,10 @@ const classroomSchema = new Schema(
             required: true,
             unique: true
         },
+        classroomDesc: {
+            type: String,
+            required: true
+        },
         classroomCode: {
             type: String,
             required: true,
@@ -16,9 +20,10 @@ const classroomSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "User"
         },
-        classroomOwner_Email: {
+        classroomOwnerId: {
             type: Schema.Types.ObjectId,
-            ref: "User"
+            ref: "User",
+            required: true
         },
         classroomMembers: [
             {

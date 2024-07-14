@@ -1,11 +1,20 @@
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
+import dotenv from 'dotenv';
+dotenv.config();
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+const getPublicIdFromUrl = (url) => {
+  const parts = url.split('/');
+  const lastPart = parts.pop();
+  const publicId = lastPart.split('.')[0];
+  return publicId;
+};
 
 const uploadOnCloudinary = async (localFilePath) => {
   try {
@@ -27,40 +36,28 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-export { uploadOnCloudinary };
+const deleteFromCloudinary = async (cloudinaryFilePath) => {
+  try {
+      if (!cloudinaryFilePath)  {
+          throw new ApiError(
+              400, 
+              "Invalid URL of cloudinary asset"
+          )
+      }
+      const publicId = getPublicIdFromUrl(cloudinaryFilePath);
+      const response = await cloudinary.uploader.destroy(publicId);
+      console.log(response);
+      return response;
+  } catch (error) {
+      throw new ApiError(
+          400, 
+          error?.message || "Error occured while destroying the asset"
+      )
+      return null;
+  }
+}
 
-
-// import {v2 as cloudinary} from 'cloudinary';
-// import fs from 'fs';
-
-
-// cloudinary.config( 
-//     {
-//         cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-//         api_key: process.env.CLOUDINARY_API_KEY,
-//         api_secret: process.env.CLOUDINARY_API_SECRET,
-//     }    
-// );
-
-
-// const uploadOnCloudinary = async (localFilePath) => {
-//     try {
-//         if (!localFilePath) return null
-//         //upload the file on cloudinary
-//         const response = await cloudinary.uploader.upload(localFilePath, {
-//             resource_type: "auto"
-//         })
-//         // file has been uploaded successfull
-//         //console.log("file is uploaded on cloudinary ", response.url);
-//         fs.unlinkSync(localFilePath)
-//         return response;
-
-//     } catch (error) {
-//         fs.unlinkSync(localFilePath) // remove the locally saved temporary file as the upload operation got failed
-//         return null;
-//     }
-// }
-
-
-
-// export {uploadOnCloudinary}
+export { 
+  uploadOnCloudinary, 
+  deleteFromCloudinary, 
+};
