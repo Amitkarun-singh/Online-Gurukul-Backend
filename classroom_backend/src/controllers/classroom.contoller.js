@@ -76,8 +76,8 @@ const deleteClassRoom = asyncHandler(async (req, res) => {
             throw new ApiError(404, "Classroom not found");
         }
 
-        if(classroom.classroomOwnerId.toString() !== req.user?._id.toString()){
-            throw new ApiError(403, "You are not authorized to delete this classroom");
+        if(!classroom.classroomOwnerId.includes(req.user._id.toString())){
+            throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
 
         await Classroom.deleteOne({ _id: classroomId });
@@ -109,8 +109,8 @@ const updateClassRoom = asyncHandler(async (req, res) => {
             throw new ApiError(404, "Classroom not found");
         }
 
-        if(classroom.classroomOwnerId.toString() !== req.user?._id.toString()){
-            throw new ApiError(403, "You are not authorized to update this classroom");
+        if(!classroom.classroomOwnerId.includes(req.user._id.toString())){
+            throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
 
         classroom.classroomName = classroomName;
@@ -147,8 +147,8 @@ const addClassRoomMember = asyncHandler(async (req, res) => {
             throw new ApiError(404, "User not found");
         }
     
-        if(classroom.classroomOwnerId.toString() !== req.user?._id.toString()){
-            throw new ApiError(403, "You are not authorized to add members to this classroom");
+        if(!classroom.classroomOwnerId.includes(req.user._id.toString())){
+            throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
     
         if(classroom.classroomMembers.includes(user._id)){
@@ -187,8 +187,8 @@ const makeClassRoomOwner = asyncHandler(async (req, res) => {
             throw new ApiError(404, "User not found");
         }
 
-        if(classroom.classroomOwnerId.toString() !== req.user?._id.toString()){
-            throw new ApiError(403, "You are not authorized to make members owner of this classroom");
+        if(!classroom.classroomOwnerId.includes(req.user._id.toString())){
+            throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
 
         if(!classroom.classroomMembers.includes(user._id)){
@@ -226,7 +226,7 @@ const removeClassRoomMember = asyncHandler(async (req, res) => {
             throw new ApiError(404, "User not found");
         }
 
-        if(classroom.classroomOwnerId.toString() !== req.user?._id.toString()){
+        if(!classroom.classroomOwnerId.includes(req.user._id.toString())){
             throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
 
