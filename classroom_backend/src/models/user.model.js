@@ -42,7 +42,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please upload your photo"],
   },
-  
+  classroom: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Classroom",
+    }
+  ],
+},
+{
+  timestamps: true,
 });
 
 userSchema.pre("save", async function (next) {
