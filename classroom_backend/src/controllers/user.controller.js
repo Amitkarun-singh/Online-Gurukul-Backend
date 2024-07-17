@@ -122,7 +122,10 @@ const changeCurrentPassword = asyncHandler(async(req, res) => {
         throw new ErrorHandler("Both old and new passwords are required", 400);
     }
 
-    const user = await User.findById(req.user?._id)
+    const user = await User.findById(req.user?._id).select("+password");
+    if (!user) {
+        throw new ErrorHandler("User not found", 404);
+    }
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
     if (!isPasswordCorrect) {
