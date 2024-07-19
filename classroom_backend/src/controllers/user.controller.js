@@ -281,6 +281,9 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     const oldAvatarCloudinaryUrl = userWithOldAvatar.avatar;
 
     const oldAvatar = await deleteFromCloudinary(oldAvatarCloudinaryUrl);
+    if(!oldAvatar){
+        throw new ApiError(400, "oldAvatar is required")
+    }
 
     console.log(req.files);
     const avatarLocalPath = req.files?.path
