@@ -1,7 +1,4 @@
 import mongoose, {Schema} from "mongoose";
-import AutoIncrementFactory from 'mongoose-sequence';
-
-// const AutoIncrement = AutoIncrementFactory(mongoose);
 
 const moduleSchema = new Schema({
     moduleName: {
@@ -10,21 +7,31 @@ const moduleSchema = new Schema({
         unique: true,
         trim: true
     },
-    lecture: {
-        type: Schema.Types.ObjectId,
-        ref: "Lecture",
-    },
-    noteFile: [
+    lecture: [
         {
-            id: { type: Number, default: 0 },
-            url: { type: String, required: true } //cloudinary url
+            type: Schema.Types.ObjectId,
+            ref: "Lecture",
         }
-    ]
+    ],
+    note: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "Note",
+        }
+    ],
+    homework: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "Homework",
+        }
+    ],
+    classroom: {
+        type: Schema.Types.ObjectId,
+        ref: "Classroom",
+    }
 },
 {
     timestamps: true
 });
-
-// moduleSchema.plugin(AutoIncrement, { inc_field: 'noteFile.id' });
 
 export const Module = mongoose.model("Module", moduleSchema);
