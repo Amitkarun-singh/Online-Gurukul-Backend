@@ -80,7 +80,7 @@ const getDoubts = asyncHandler(async(req, res) => {
 });
 
 const updateDoubts = asyncHandler(async(req, res) => {
-    const { lectureId, videoId, doubtId } = req,params;
+    const { lectureId, videoId, doubtId } = req.params;
     const { doubtDescription } = req.body;
     if(!lectureId){
         throw new ApiError(400, "Lecture Id is required");

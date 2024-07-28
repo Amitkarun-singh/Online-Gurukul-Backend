@@ -317,6 +317,8 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
 })
 
+// get user profile and admin panle are remaning
+
 export {
     loginUser,
     registerUser,
