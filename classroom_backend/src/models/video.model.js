@@ -11,6 +11,11 @@ const videoSchema = new Schema(
             type: String,
             required: [true, "Please upload a video file"] 
         },
+        lecture: {
+            type: Schema.Types.ObjectId,
+            ref: "Lecture",
+            required: [true, "Please select a lecture"]
+        }
     },
     {
         timestamps: true

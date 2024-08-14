@@ -30,6 +30,7 @@ const addVideo = asyncHandler(async(req, res) => {
         const video = new Video({
             title: title,
             videoFile: videoFile.secure_url,
+            lecture: lectureId
         });
         await video.save();
         lecture.videos.push(video._id);
