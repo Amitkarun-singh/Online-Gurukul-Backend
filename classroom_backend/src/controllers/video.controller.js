@@ -1,4 +1,5 @@
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Lecture } from "../models/lecture.model.js";
 import { Video } from "../models/video.model.js";
@@ -6,19 +7,19 @@ import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js
 
 const addVideo = asyncHandler(async(req, res) => {
     const { lectureId } = req.params;
-    const { title, videoFile } = req.body;
+    const { title } = req.body;
     if(!lectureId){
         throw new ApiError(400, "Lecture Id is required");
     }
-    if(!videoFile || !title){
-        throw new ApiError(400, "Title and video file is required");
+    if(!title){
+        throw new ApiError(400, "Title is required");
     }
     try {
         const lecture = await Lecture.findById(lectureId);
         if(!lecture){
             throw new ApiError(404, "Lecture not found");
         }
-        const videoFileLocalPath = req.files.videoFile[0]?.path;
+        const videoFileLocalPath = req.file?.path;
         if(!videoFileLocalPath){
             throw new ApiError(400, "Video file is required");
         }
@@ -48,11 +49,11 @@ const addVideo = asyncHandler(async(req, res) => {
     
 });
 
-const getAllVideos = asyncHandler(async(req, res) => {
+const getVideos = asyncHandler(async(req, res) => {
     const { lectureId } = req.params;
     if(!lectureId){
         throw new ApiError(400, "Lecture Id is required");
-    }
+    } 
     try {
         const lecture = await Lecture.findById(lectureId);
         if(!lecture){
@@ -90,7 +91,7 @@ const deleteVideo = asyncHandler(async(req, res) => {
         }
         const videoFileId = video.videoFile.split("/").pop();
         await deleteFromCloudinary(videoFileId);
-        await video.remove();
+        await video.deleteOne({_id: videoId});
         lecture.videos = lecture.videos.filter((video) => video.toString() !== videoId);
         await lecture.save();
         return res
@@ -109,6 +110,6 @@ const deleteVideo = asyncHandler(async(req, res) => {
 
 export {
     addVideo,
-    getAllVideos,
+    getVideos,
     deleteVideo
 }

@@ -30,8 +30,11 @@ const addDoubt = asyncHandler(async(req, res) => {
         const doubt = new Doubt({
             doubtDescription: doubtDescription,
             lecture: lectureId,
-            video: videoId
+            video: videoId,
+            student: req.user._id
         })
+        lecture.doubt.push(doubt._id);
+        await lecture.save();
         await doubt.save()
         return res
         .status(200)
@@ -149,12 +152,9 @@ const updateDoubts = asyncHandler(async(req, res) => {
 });
 
 const deleteDoubts = asyncHandler(async(req, res) => {
-    const { lectureId, videoId, doubtId } = req.params;
+    const { lectureId, doubtId } = req.params;
     if(!lectureId){
         throw new ApiError(400, "Lecture Id is required");
-    }
-    if(!videoId){
-        throw new ApiError(400, "Video Id is required");
     }
     if(!doubtId){
         throw new ApiError(400, "Doubt Id is required");
@@ -164,20 +164,13 @@ const deleteDoubts = asyncHandler(async(req, res) => {
         if(!lecture){
             throw new ApiError(404, "Lecture not found");
         }
-        const video = await Video.findById(videoId);
-        if(!video){
-            throw new ApiError(404, "Video not found");
-        }
         const doubt = await Doubt.findById(doubtId);
         if(!doubt){
             throw new ApiError(404, "Doubt not found");
         }
-        await doubt.remove();
-        lecture.doubts.pull(doubtId);
+        await doubt.deleteOne({_id: doubtId});
+        lecture.doubt.pull(doubtId);
         await lecture.save();
-        video.doubts.pull(doubtId);
-        await video.save();
-        await doubt.remove();
         return res
         .status(200)
         .json(
