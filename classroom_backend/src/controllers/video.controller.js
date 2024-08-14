@@ -6,12 +6,12 @@ import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js
 
 const addVideo = asyncHandler(async(req, res) => {
     const { lectureId } = req.params;
-    const { videoFile } = req.body;
+    const { title, videoFile } = req.body;
     if(!lectureId){
         throw new ApiError(400, "Lecture Id is required");
     }
-    if(!videoFile){
-        throw new ApiError(400, "Please upload a video file");
+    if(!videoFile || !title){
+        throw new ApiError(400, "Title and video file is required");
     }
     try {
         const lecture = await Lecture.findById(lectureId);
@@ -27,6 +27,7 @@ const addVideo = asyncHandler(async(req, res) => {
             throw new ApiError(500, "An error occurred while uploading video file");
         }
         const video = new Video({
+            title: title,
             videoFile: videoFile.secure_url,
         });
         await video.save();

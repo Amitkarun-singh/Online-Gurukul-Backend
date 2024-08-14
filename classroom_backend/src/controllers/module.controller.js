@@ -89,6 +89,39 @@ const getModule = asyncHandler(async(req, res)=> {
     }
 });
 
+const getAllModules = asyncHandler(async(req, res)=> {
+    const { classroomId } = req.params;
+
+    if(!classroomId){
+        throw new ApiError(400, "Classroom Id is required");
+    }
+
+    try {
+        const classroom = await Classroom.findById(classroomId);
+        if(!classroom){
+            throw new ApiError(400, "Classroom not found");
+        }
+
+        if (!classroom.classroomOwnerId.includes(req.user._id.toString()) && !classroom.classroomMemberIds.includes(req.user._id.toString())) {
+            throw new ApiError(403, "You are not a member of this classroom");
+        }
+
+        const modules = await Module.find({ _id: { $in: classroom.ModuleID } });
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                modules,
+                "Modules fetched successfully"
+            )
+        );
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while fetching the modules");
+    }
+});
+
 const updateModule = asyncHandler(async(req, res)=> {
     
     const { classroomId } = req.params;
@@ -188,6 +221,7 @@ const deleteModule = asyncHandler(async(req, res)=> {
 export{
     createModule,
     getModule,
+    getAllModules,
     updateModule,
     deleteModule,
 }

@@ -10,7 +10,7 @@ import {
     removeClassRoomMember,
     leaveClassRoom,
     joinClassRoom
-} from "../controllers/classroom.contoller.js";
+} from "../controllers/classroom.controller.js";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
 
 const router = Router();

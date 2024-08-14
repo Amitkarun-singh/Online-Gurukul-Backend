@@ -7,15 +7,11 @@ import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js
 
 const addNote = asyncHandler(async(req, res) => {
     const { moduleId } = req.params;
-    const { notesFile } = req.body;
 
     if(!moduleId){
         throw new ApiError(400, "Module Id is required");
     }
-
-    if(!notesFile){
-        throw new ApiError(400, "Please upload a file");
-    }
+    
 
     try {
         const module = await Module.findById(moduleId);
@@ -23,7 +19,9 @@ const addNote = asyncHandler(async(req, res) => {
             throw new ApiError(404, "Module not found");
         }
 
-        const noteFileLocalPath = req.files.notesFile[0]?.path;
+        console.log(req.file);
+        
+        const noteFileLocalPath = req.file?.path;
         if(!noteFileLocalPath){
             throw new ApiError(400, "Note file is required");
         }
@@ -37,6 +35,9 @@ const addNote = asyncHandler(async(req, res) => {
             notesFile: noteFile.secure_url,
             module: moduleId
         });
+
+        module.note.push(note._id);
+        await module.save();
         await note.save();
 
         return res
@@ -85,12 +86,22 @@ const getNotes = asyncHandler(async(req, res) => {
 });
 
 const deleteNote = asyncHandler(async(req, res) => {
-    const { noteId } = req.params;
+    const { noteId, moduleId } = req.params;
+
+    if(!moduleId){
+        throw new ApiError(400, "Module Id is required");
+    }
+
     if(!noteId){
         throw new ApiError(400, "Note Id is required");
     }
 
     try {
+        const module = await Module.findById(moduleId);
+        if(!module){
+            throw new ApiError(404, "Module not found");
+        }
+
         const note = await Note.findById(noteId);
         if(!note){
             throw new ApiError(404, "Note not found");
@@ -98,11 +109,13 @@ const deleteNote = asyncHandler(async(req, res) => {
 
         const noteFilePublicId = note.notesFile.split("/").pop().split(".")[0];
         const deleteResult = await deleteFromCloudinary(noteFilePublicId);
-        if(deleteResult.result !== "ok"){
+        if (deleteResult.result !== "ok" && deleteResult.result !== "not found") {
+            console.error("Cloudinary deletion error:", deleteResult);
             throw new ApiError(500, "An error occurred while deleting note file");
         }
-
-        await note.remove();
+        module.note.pull(note._id);
+        await module.save();
+        await Note.deleteOne({ _id: noteId });
 
         return res
         .status(200)

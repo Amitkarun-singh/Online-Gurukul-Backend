@@ -79,6 +79,31 @@ const getDoubts = asyncHandler(async(req, res) => {
     }
 });
 
+const getAllDoubts = asyncHandler(async(req, res) => {
+    const { videoId } = req.params;
+    if (!videoId) {
+        throw new ApiError(400, "Video Id is required");
+    }
+    try {
+        const video = await Video.findById(videoId);
+        if (!video) {
+            throw new ApiError(404, "Video not found");
+        }
+        const doubts = await Doubt.find({ video: videoId });
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    doubts,
+                    "Doubts found successfully"
+                )
+            );
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while fetching doubts");
+    }
+});
+
 const updateDoubts = asyncHandler(async(req, res) => {
     const { lectureId, videoId, doubtId } = req.params;
     const { doubtDescription } = req.body;
@@ -170,6 +195,7 @@ const deleteDoubts = asyncHandler(async(req, res) => {
 export {
     addDoubt,
     getDoubts,
+    getAllDoubts,
     updateDoubts,
     deleteDoubts
 }

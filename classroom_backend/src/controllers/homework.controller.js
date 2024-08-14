@@ -99,6 +99,37 @@ const getHomeworks = asyncHandler(async(req, res) => {
     }
 });
 
+const getAllHomeworks = asyncHandler(async(req, res) => {
+    const { moduleId } = req.params;
+    if(!moduleId){
+        throw new ApiError(400, "Module Id is required");
+    }
+
+    try {
+        const module = await Module.findById(moduleId);
+        if(!module){
+            throw new ApiError(404, "Module not found");
+        }
+
+        const homeworks = await Homework.find({module:moduleId});
+        if(!homeworks){
+            throw new ApiError(404, "No homeworks found");
+        }
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                homeworks,
+                "All Homeworks fetched successfully"
+            )
+        );
+    }catch(error){
+        throw new ApiError(500, error.message || "An error occurred while getting all homeworks")
+    }
+});
+
 const updateHomework = asyncHandler(async(req, res) => {
     const { homeworkId } = req.params;
     const { title, homeworkFile, homeworkDescription, dueDate } = req.body;
@@ -247,7 +278,8 @@ const homeworkSubmission = asyncHandler(async(req, res) => {
 
 export { 
     addHomework, 
-    getHomeworks, 
+    getHomeworks,
+    getAllHomeworks, 
     updateHomework, 
     deleteHomework, 
     homeworkSubmission
