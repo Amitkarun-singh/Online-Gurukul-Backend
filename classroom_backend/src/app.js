@@ -58,7 +58,7 @@ app.use("/api/v1/modules", moduleRouter);
 app.use("/api/v1/notes", noteRouter);
 app.use("/api/v1/lecture", lectureRouter);
 app.use("/api/v1/assignment", assignmentRouter);
-app.use("/api/v1/lecture/video", videoRouter);
+app.use("/api/v1/video", videoRouter);
 app.use("/api/v1/doubts", doubtRouter)
 
 app.get("/", (req, res) => {
