@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
-const videoSchema = new mongoose.Schema(
+const videoSchema = new Schema(
     {
         title: {
             type: String,
@@ -9,7 +9,7 @@ const videoSchema = new mongoose.Schema(
         },
         videoFile: {
             type: String,
-            required: [true, "Please upload a video file"]
+            required: [true, "Please upload a video file"] 
         },
     },
     {

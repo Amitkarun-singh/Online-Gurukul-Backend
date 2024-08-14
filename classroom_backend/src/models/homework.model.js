@@ -1,4 +1,4 @@
-import mongoose, {Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const homeworkSchema = new Schema(
     {
@@ -26,17 +26,29 @@ const homeworkSchema = new Schema(
 
         submissionFile: {
             type: String,
-            required: [true, "Please upload a file"],
+            required: [false, "Please upload a file"],
         },
 
         module: {
             type: Schema.Types.ObjectId,
             ref: "Module",
-        }
+        },
 
+        submissions: [
+            {
+                submissionFile: {
+                    type: String,
+                    required: true,
+                },
+                submittedAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+            },
+        ],
     },
     {
-        timestamps:true,
+        timestamps: true,
     }
 );
 

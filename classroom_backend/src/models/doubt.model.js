@@ -1,24 +1,24 @@
-import mongoose from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
-const doubtSchema = new mongoose.Schema(
+const doubtSchema = new Schema(
     {
         doubtDescription: {
             type: String,
             required: [true, "Please enter your doubt"]
         },
         video: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: "Video",
             required: [true, "Please enter video id"]
         },
         student: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: "User",
             required: [true, "Please enter student id"]
         },
-        module: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Module",
+        lecture: {
+            type: Schema.Types.ObjectId,
+            ref: "Lecture",
             required: [true, "Please enter module id"]
         },
     },
