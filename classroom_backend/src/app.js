@@ -47,13 +47,19 @@ import classroomRouter from "./routes/classroom.routes.js";
 import moduleRouter from "./routes/module.routes.js"
 import noteRouter from "./routes/notes.routes.js"
 import lectureRouter from "./routes/lecture.routes.js"
+import assignmentRouter from "./routes/homework.routes.js"
+import videoRouter from "./routes/video.routes.js"
+import doubtRouter from "./routes/doubt.routes.js"
 
 //routes declaration
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/classrooms", classroomRouter);
 app.use("/api/v1/modules", moduleRouter);
 app.use("/api/v1/notes", noteRouter);
-app.use("/api/v1/lecture", lectureRouter)
+app.use("/api/v1/lecture", lectureRouter);
+app.use("/api/v1/assignment", assignmentRouter);
+app.use("/api/v1/video", videoRouter);
+app.use("/api/v1/doubts", doubtRouter)
 
 app.get("/", (req, res) => {
   res.send("Nice working");

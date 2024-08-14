@@ -7,26 +7,16 @@ import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js
 
 const addHomework = asyncHandler(async(req, res) => {
     const { moduleId } = req.params;
-    const { title, homeworkFile, homeworkDescription, dueDate } = req.body;
+    const { title, description, dueDate } = req.body;
 
     if(!moduleId){
         throw new ApiError(400, "Module Id is required");
     }
 
-    if(!title){
-        throw new ApiError(400, "Title is required");
-    }
-
-    if(!homeworkFile){
-        throw new ApiError(400, "Please upload a file");
-    }
-
-    if(!homeworkDescription){
-        throw new ApiError(400, "Homework Description is required");
-    }
-
-    if(!dueDate){
-        throw new ApiError(400, "Due Date is required");
+    console.log(req.body);
+    
+    if(!title || !description || !dueDate){
+        throw new ApiError(400, "Title, Homework Description, and Due Date are required");
     }
 
     try {
@@ -35,7 +25,9 @@ const addHomework = asyncHandler(async(req, res) => {
             throw new ApiError(404, "Module not found");
         }
 
-        const homeworkFileLocalPath = req.files.homeworkFile[0]?.path;
+        console.log(req.file);
+        
+        const homeworkFileLocalPath = req.file?.path;
         if(!homeworkFileLocalPath){
             throw new ApiError(400, "Homework file is required");
         }
@@ -48,12 +40,13 @@ const addHomework = asyncHandler(async(req, res) => {
         const homework = new Homework({
             title: title,
             homeworkFile: homeworkFile.secure_url,
-            homeworkDescription: homeworkDescription,
+            description: description,
             dueDate: dueDate,
             module: moduleId
         });
         await homework.save();
-
+        module.homework.push(homework._id);
+        await module.save();
         return res
         .status(200)
         .json(
@@ -99,50 +92,24 @@ const getHomeworks = asyncHandler(async(req, res) => {
     }
 });
 
-const getAllHomeworks = asyncHandler(async(req, res) => {
-    const { moduleId } = req.params;
+const updateHomework = asyncHandler(async(req, res) => {
+    const { moduleId, homeworkId } = req.params;
+    const { title, description, dueDate } = req.body;
+
     if(!moduleId){
         throw new ApiError(400, "Module Id is required");
     }
 
-    try {
-        const module = await Module.findById(moduleId);
-        if(!module){
-            throw new ApiError(404, "Module not found");
-        }
-
-        const homeworks = await Homework.find({module:moduleId});
-        if(!homeworks){
-            throw new ApiError(404, "No homeworks found");
-        }
-
-        return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                homeworks,
-                "All Homeworks fetched successfully"
-            )
-        );
-    }catch(error){
-        throw new ApiError(500, error.message || "An error occurred while getting all homeworks")
-    }
-});
-
-const updateHomework = asyncHandler(async(req, res) => {
-    const { homeworkId } = req.params;
-    const { title, homeworkFile, homeworkDescription, dueDate } = req.body;
-
     if(!homeworkId){
         throw new ApiError(400, "Homework Id is required");
     }
-
+    console.log(req.body);
+    
     if(!title){
         throw new ApiError(400, "Title is required");
     }
 
-    if(!homeworkDescription){
+    if(!description){
         throw new ApiError(400, "Homework Description is required");
     }
 
@@ -151,13 +118,22 @@ const updateHomework = asyncHandler(async(req, res) => {
     }
 
     try {
+        const module = await Module.findById(moduleId);
+        if(!module){
+            throw new ApiError(404, "Module not found");
+        }
+
         const homework = await Homework.findById(homeworkId);
         if(!homework){
             throw new ApiError(404, "Homework not found");
         }
 
+        if(homework.module.toString() !== moduleId){
+            throw new ApiError(400, "Homework does not belong to the specified module");
+        }
+        const homeworkFile = req.file;
         if(homeworkFile){
-            const homeworkFileLocalPath = req.files.homeworkFile[0]?.path;
+            const homeworkFileLocalPath = req.file?.path;
             if(!homeworkFileLocalPath){
                 throw new ApiError(400, "Homework file is required");
             }
@@ -172,7 +148,7 @@ const updateHomework = asyncHandler(async(req, res) => {
         }
 
         homework.title = title;
-        homework.homeworkDescription = homeworkDescription;
+        homework.description = description;
         homework.dueDate = dueDate;
 
         await homework.save();
@@ -211,8 +187,8 @@ const deleteHomework = asyncHandler(async(req, res) => {
         }
 
         await deleteFromCloudinary(homework.homeworkFile);
-        await homework.delete();
-        module.homeworks.pull(homeworkId);
+        await homework.deleteOne({ _id: homeworkId });
+        module.homework.pull(homeworkId);
         await module.save();
 
         return res
@@ -229,57 +205,51 @@ const deleteHomework = asyncHandler(async(req, res) => {
     }
 });
 
-const homeworkSubmission = asyncHandler(async(req, res) => {
+const homeworkSubmission = asyncHandler(async (req, res) => {
     const { homeworkId } = req.params;
-    const { submissionFile } = req.body;
+    const submissionFileLocalPath = req.file?.path;
 
-    if(!homeworkId){
-        throw new ApiError(400, "Homework Id is required");
+    if (!submissionFileLocalPath) {
+        throw new ApiError(400, "Submission file is required");
     }
 
-    if(!submissionFile){
-        throw new ApiError(400, "Please upload a file");
+    if (!homeworkId) {
+        throw new ApiError(400, "Homework Id is required");
     }
 
     try {
         const homework = await Homework.findById(homeworkId);
-        if(!homework){
+        if (!homework) {
             throw new ApiError(404, "Homework not found");
         }
 
-        const submissionFileLocalPath = req.files.submissionFile[0]?.path;
-        if(!submissionFileLocalPath){
-            throw new ApiError(400, "Submission file is required");
-        }
-
         const submissionFile = await uploadOnCloudinary(submissionFileLocalPath);
-        if(!submissionFile){
+        if (!submissionFile) {
             throw new ApiError(500, "An error occurred while uploading submission file");
         }
 
         homework.submissions.push({
-            submissionFile: submissionFile.secure_url
+            submissionFile: submissionFile.secure_url,
         });
         await homework.save();
 
         return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                homework,
-                "Homework submitted successfully"
-            )
-        );
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    homework,
+                    "Homework submitted successfully"
+                )
+            );
     } catch (error) {
-        throw new ApiError(500, error.message || "An error occurred while submitting homework")
+        throw new ApiError(500, error.message || "An error occurred while submitting homework");
     }
 });
 
 export { 
     addHomework, 
     getHomeworks,
-    getAllHomeworks, 
     updateHomework, 
     deleteHomework, 
     homeworkSubmission
