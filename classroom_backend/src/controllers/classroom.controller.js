@@ -14,7 +14,7 @@ const getClassRoom = asyncHandler(async (req, res) => {
     }
 
     try {
-        const classroom = await Classroom.findById(classroomId).populate("classroomMembers");
+        const classroom = await Classroom.findById(classroomId).populate("classroomMembersID");
     
         if(!classroom){
             throw new ApiError(404, "Classroom not found");
@@ -34,6 +34,35 @@ const getClassRoom = asyncHandler(async (req, res) => {
 
 });
 
+const getAllClassRoomUser = asyncHandler(async (req, res) => {
+    const classroomId = req.params.classroomId;
+
+    if (!classroomId) {
+        throw new ApiError(400, "Classroom ID is required");
+    }
+
+    try {
+        const classroom = await Classroom.findById(classroomId);
+
+        if(!classroom){
+            throw new ApiError(404, "Classroom not found");
+        }
+
+        const users = await User.find({classroomID: classroomId});
+
+        return res
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            users,
+            "Users fetched Successfully"
+        ))
+
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while retrieving the users");
+    }
+});
+
 const createClassRoom = asyncHandler(async (req, res) => {
     const {classroomName, classroomDesc, classroomCode} = req.body;
 
@@ -42,12 +71,20 @@ const createClassRoom = asyncHandler(async (req, res) => {
     }
 
     try {
+        const currentUser = req.user;
+        if (!currentUser) {
+            throw new ApiError(401, "User not authenticated");
+        }
+
+        const userRole = currentUser.role;
+        if (userRole !== "teacher") {
+            throw new ApiError(403, "You are not authorized to create a classroom");
+        }
         const classroom = await Classroom.create({
             classroomName,
             classroomDesc,
             classroomCode,
             classroomOwnerId: [req.user?._id],
-            classroomMembers: [req.user?._id]
         });
 
         return res
@@ -80,6 +117,10 @@ const deleteClassRoom = asyncHandler(async (req, res) => {
             throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
 
+        await User.updateMany(
+            { classroom: classroomId },
+            { $pull: { classroom: classroomId } }
+        );
         await Classroom.deleteOne({ _id: classroomId });
 
         return res
@@ -151,12 +192,13 @@ const addClassRoomMember = asyncHandler(async (req, res) => {
             throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
     
-        if(classroom.classroomMembers.includes(user._id)){
+        if(classroom.classroomMembersID.includes(user._id)){
             throw new ApiError(400, "User is already a member of this classroom");
         }
     
-        
-        classroom.classroomMembers.push(user._id);
+        user.classroomID.push(classroomId);
+        await user.save();
+        classroom.classroomMembersID.push(user._id);
         await classroom.save();
     
         return res
@@ -191,11 +233,12 @@ const makeClassRoomOwner = asyncHandler(async (req, res) => {
             throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
 
-        if(!classroom.classroomMembers.includes(user._id)){
+        if(!classroom.classroomMembersID.includes(user._id)){
             throw new ApiError(400, "User is not a member of this classroom");
         }
 
         classroom.classroomOwnerId.push(user._id);
+        classroom.classroomMembersID.$pull(user._id);
         await classroom.save();
 
         return res
@@ -230,12 +273,14 @@ const removeClassRoomMember = asyncHandler(async (req, res) => {
             throw new ApiError(403, "You are not authorized to remove members from this classroom");
         }
 
-        if(!classroom.classroomMembers.includes(user._id)){
+        if(!classroom.classroomMembersID.includes(user._id)){
             throw new ApiError(400, "User is not a member of this classroom");
         }
 
-        classroom.classroomMembers = classroom.classroomMembers.filter(member => member.toString() !== user._id.toString());
+        classroom.classroomMembersID = classroom.classroomMembersID.filter(member => member.toString() !== user._id.toString());
 
+        user.classroomID = user.classroomID.filter( classroomId => classroomId.toString() !== classroomId.toString());
+        await user.save();
         await classroom.save();
 
         return res
@@ -265,14 +310,15 @@ const leaveClassRoom = asyncHandler(async (req, res) => {
             throw new ApiError(404, "User not found");
         }
 
-        if (!classroom.classroomMembers.includes(user._id)) {
-            throw new ApiError(400, "You are not a member of this classroom");
+        if (!classroom.classroomMembersID.includes(user._id) && !classroom.classroomOwnerId.includes(user._id)) {
+            throw new ApiError(400, "You are not a member or owner of this classroom");
         }
 
-        classroom.classroomMembers = classroom.classroomMembers.filter(member => member.toString() !== user._id.toString());
+        classroom.classroomMembersID = classroom.classroomMembersID.filter(member => member.toString() !== user._id.toString());
+        classroom.classroomOwnerId = classroom.classroomOwnerId.filter(member => member.toString() !== user._id.toString());
         await classroom.save();
 
-        user.classroom = user.classroom.filter(room => room.toString() !== classroom._id.toString());
+        user.classroomID = user.classroomID.filter(room => room.toString() !== classroom._id.toString());
         await user.save();
 
         return res
@@ -306,13 +352,13 @@ const joinClassRoom = asyncHandler(async (req, res) => {
             throw new ApiError(404, "User not found");
         }
 
-        if (classroom.classroomMembers.includes(user._id)) {
+        if (classroom.classroomMembersID.includes(user._id)) {
             throw new ApiError(400, "You are already a member of this classroom");
         }
 
-        classroom.classroomMembers.push(user._id);
+        classroom.classroomMembersID.push(user._id);
         await classroom.save();
-        user.classroom.push(classroom._id);
+        user.classroomID.push(classroom._id);
         await user.save();
 
         return res
@@ -329,6 +375,7 @@ const joinClassRoom = asyncHandler(async (req, res) => {
 
 export {
     getClassRoom,
+    getAllClassRoomUser,
     createClassRoom,
     deleteClassRoom,
     updateClassRoom,

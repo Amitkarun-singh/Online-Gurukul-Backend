@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
     getClassRoom,
     createClassRoom,
+    getAllClassRoomUser,
     deleteClassRoom,
     updateClassRoom,
     addClassRoomMember,
@@ -9,7 +10,7 @@ import {
     removeClassRoomMember,
     leaveClassRoom,
     joinClassRoom
-} from "../controllers/classroom.contoller.js";
+} from "../controllers/classroom.controller.js";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -22,6 +23,7 @@ router.route("/:classroomId")
     .delete(deleteClassRoom);
 router.route("/:classroomId/member")
     .post(addClassRoomMember)
+    .get(getAllClassRoomUser)
     .patch(makeClassRoomOwner)
     .delete(removeClassRoomMember);
 router.route("/:classroomId/leave").delete(leaveClassRoom);

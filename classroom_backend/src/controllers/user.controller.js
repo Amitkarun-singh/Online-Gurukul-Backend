@@ -151,9 +151,9 @@ const getCurrentUser = asyncHandler(async(req, res) => {
 })
 
 const updateAccountDetails = asyncHandler(async(req, res) => {
-    const {fullName, email} = req.body
+    const {fullName, email, dob} = req.body
 
-    if (!fullName || !email) {
+    if (!fullName || !email || !dob) {
         throw new ErrorHandler("All fields are required", 400)
     }
 
@@ -161,8 +161,9 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
         req.user?._id,
         {
             $set: {
-                fullName,
-                email: email
+                fullName: fullName,
+                email: email,
+                dob: dob
             }
         },
         {new: true}
@@ -239,7 +240,7 @@ const registerUser = asyncHandler( async (req, res) => {
         new ApiResponse(200, createdUser, "User registered Successfully")
     )
 
-} );
+});
 
 const logoutUser = asyncHandler(async(req, res) => {
     await User.findByIdAndUpdate(
@@ -264,7 +265,7 @@ const logoutUser = asyncHandler(async(req, res) => {
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged Out"))
-})
+});
 
 const updateUserAvatar = asyncHandler(async (req, res) => {
 
@@ -281,6 +282,9 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     const oldAvatarCloudinaryUrl = userWithOldAvatar.avatar;
 
     const oldAvatar = await deleteFromCloudinary(oldAvatarCloudinaryUrl);
+    if(!oldAvatar){
+        throw new ApiError(400, "oldAvatar is required")
+    }
 
     console.log(req.files);
     const avatarLocalPath = req.files?.path
@@ -312,7 +316,19 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         )
     )
 
-})
+});
+
+const getStudentDashboard = asyncHandler(async (req, res) => {
+    // Logic to fetch student dashboard data
+});
+
+const getTeacherDashboard = asyncHandler(async (req, res) => {
+    // Logic to fetch teacher dashboard data
+});
+
+const getAdminDashboard = asyncHandler(async (req, res) => {
+    // Logic to fetch admin dashboard data
+});
 
 export {
     loginUser,
@@ -322,5 +338,8 @@ export {
     getCurrentUser,
     updateAccountDetails,
     logoutUser,
-    updateUserAvatar
+    updateUserAvatar,
+    getStudentDashboard,
+    getTeacherDashboard,
+    getAdminDashboard
 };

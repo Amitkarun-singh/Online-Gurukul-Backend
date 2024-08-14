@@ -44,10 +44,16 @@ app.use(express.static("public"));
 //routes import
 import userRouter from './routes/user.routes.js'
 import classroomRouter from "./routes/classroom.routes.js";
+import moduleRouter from "./routes/module.routes.js"
+import noteRouter from "./routes/notes.routes.js"
+import lectureRouter from "./routes/lecture.routes.js"
 
 //routes declaration
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/classrooms", classroomRouter);
+app.use("/api/v1/modules", moduleRouter);
+app.use("/api/v1/notes", noteRouter);
+app.use("/api/v1/lecture", lectureRouter)
 
 app.get("/", (req, res) => {
   res.send("Nice working");

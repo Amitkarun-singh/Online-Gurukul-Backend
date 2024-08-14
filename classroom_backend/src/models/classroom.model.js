@@ -24,13 +24,22 @@ const classroomSchema = new Schema(
                 required: true
             }
         ],
-        classroomMembers: [
+        classroomMembersID: [
             {
                 type: Schema.Types.ObjectId,
                 ref: "User"
             }
         ],
-
+        ModuleID: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Module"
+            }
+        ],
+        meetLink : {
+            type: Schema.Types.ObjectId,
+            ref: "Meet",
+        }
     },
     {
         timestamps: true

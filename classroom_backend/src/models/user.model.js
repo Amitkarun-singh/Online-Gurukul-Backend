@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please upload your photo"],
   },
-  classroom: [
+  classroomID: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Classroom",
