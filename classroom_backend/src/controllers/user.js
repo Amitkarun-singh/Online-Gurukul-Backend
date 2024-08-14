@@ -33,7 +33,7 @@ const upload = multer({
 
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password ,} = req.body;
 
     const user = await User.findOne({ email }).select("+password");
 
