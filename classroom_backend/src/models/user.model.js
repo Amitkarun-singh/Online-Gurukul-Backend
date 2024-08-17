@@ -20,6 +20,12 @@ const userSchema = new mongoose.Schema({
     select: false,
     trim: true,
   },
+  confirmPassword: {
+    type: String,
+    required: [true, "Please enter your password"],
+    select: false,
+    trim: true,
+  },
   dob: {
     type: Date,
     required: [true, "Please enter your date of birth"],

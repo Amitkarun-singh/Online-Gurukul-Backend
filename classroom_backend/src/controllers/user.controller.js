@@ -25,20 +25,32 @@ const generateAccessAndRefereshTokens = async(userId) =>{
 
 const loginUser = asyncHandler(async (req, res, next) => {
     try {
-        const { email, password, username } = req.body;
-        if (!username && !email) {
-        throw new ErrorHandler("username or email is required", 400);
+        const { text , password } = req.body;
+        if (!text) {
+        throw new ApiError(400, "username or email is required");
+        }
+        if (!password) {
+            throw new ApiError(400, "password is required");
+        }
+        let email;
+        let username;
+        if (text.includes("@") && (text.includes(".com") || text.includes(".in"))) {
+            email = text;
+        }else{
+            username = text;
+        }
+
+        const user = await User.findOne({
+            $or: [{username}, {email}]
+        }).select("+password");
+
+    if(!user){
+        throw new ApiError(400, "User does not exist");
     }
-
-    const user = await User.findOne({
-        $or: [{username}, {email}]
-    }).select("+password");
-
-    if (!user) return next(new ErrorHandler("User does not exist", 404));
 
     const isPasswordValid = await user.isPasswordCorrect(password)
 
-    if (!isPasswordValid) return next(new ErrorHandler("Invalid Email or Password", 400));
+    if (!isPasswordValid) throw new ApiError(400, "Invalid Password");
 
     const {accessToken, refreshToken} = await generateAccessAndRefereshTokens(user._id)
 
@@ -63,7 +75,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
         )
     )
     } catch (error) {
-        next(error);
+        throw new ApiError(500, error.message || "An error occurred while login")
     }
 })
 
@@ -116,10 +128,18 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 const changeCurrentPassword = asyncHandler(async(req, res) => {
-    const {oldPassword, newPassword} = req.body
+    const {oldPassword, newPassword, newConfirmPassword} = req.body
 
     if (!oldPassword && !newPassword) {
         throw new ErrorHandler("Both old and new passwords are required", 400);
+    }
+
+    if(!newConfirmPassword){
+        throw new ErrorHandler("Confirm password is required", 400);
+    }
+
+    if (newPassword !== newConfirmPassword) {
+        throw new ErrorHandler("Passwords do not match", 400);
     }
 
     const user = await User.findById(req.user?._id).select("+password");
@@ -187,13 +207,17 @@ const registerUser = asyncHandler( async (req, res) => {
   // return res
 
 
-    const {fullName, email, username, password ,dob, role } = req.body
+    const {fullName, email, username, password, confirmPassword ,dob, role } = req.body
   //console.log("email: ", email);
 
     if (
-        [fullName, email, username, password].some((field) => field?.trim() === "")
+        [fullName, email, username, password, confirmPassword].some((field) => field?.trim() === "")
     ) {
         throw new ErrorHandler("All fields are required", 400)
+    }
+
+    if(password != confirmPassword){
+        throw new ErrorHandler("Passwords do not match", 400);
     }
 
     const existedUser = await User.findOne({
@@ -223,6 +247,7 @@ const registerUser = asyncHandler( async (req, res) => {
         avatar: avatar.url,
         email, 
         password,
+        confirmPassword,
         username: username.toLowerCase(),
         dob,
         role
