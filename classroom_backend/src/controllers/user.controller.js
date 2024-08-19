@@ -386,7 +386,7 @@ const generateOTP = asyncHandler(async (req, res) => {
             text: emailBody,
         });
 
-        const resendToken = jwt.sign({ id: user._id }, process.env.RESEND_TOKEN_SECRET, { expiresIn: '15m' });
+        const resendToken = jwt.sign({ id: user._id }, process.env.RESEND_TOKEN_SECRET, { expiresIn: '1d' });
 
         res.cookie('resendToken', resendToken, {
             httpOnly: true,
@@ -403,15 +403,16 @@ const generateOTP = asyncHandler(async (req, res) => {
 const resendOTP = asyncHandler(async (req, res) => {
     const resendToken = req.cookies?.resendToken;
     if (!resendToken) {
-        throw new ApiError("Reset token is required", 400);
+        throw new ApiError(400, "Go back and Enter your email again");
     }
+    
     try {
         const decodedToken = jwt.verify(resendToken, process.env.RESEND_TOKEN_SECRET);
 
         const user = await User.findById(decodedToken.id);
 
         if (!user) {
-            throw new ApiError("User not found", 404);
+            throw new ApiError(404, "User not found");
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000);
@@ -439,13 +440,20 @@ const verifyOTP = asyncHandler(async (req, res) => {
     const { otp } = req.body;
     const { resendToken } = req.cookies?.resendToken;
     if(resendToken){
-        throw new ApiError(400, "Resend OTP token is required");
+        throw new ApiError(400, "Go back and Enter your email again");
     }
 
     if (!otp) {
         throw new ApiError(400, "OTP is required");
     }
-    console.log(otp);
+
+    if(otp.length < 6){
+        throw new ApiError(400, "OTP must be 6 characters");
+    }
+
+    if(/[a-zA-Z!@#$%^&*(),.?":{}|<>]/.test(otp)){
+        throw new ApiError(400, "OTP should only contain numbers");
+    }
     
     try {
         const user = await User.findOne({ otp, otpExpireTime: { $gt: Date.now() } });
@@ -458,7 +466,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
 
         res.clearCookie('resendToken');
 
-        const resetToken = jwt.sign({ id: user._id }, process.env.RESET_TOKEN_SECRET, { expiresIn: '15m' });
+        const resetToken = jwt.sign({ id: user._id }, process.env.RESET_TOKEN_SECRET, { expiresIn: '60m' });
 
         res.cookie('resetToken', resetToken, {
             httpOnly: true,
@@ -482,19 +490,19 @@ const resetPassword = asyncHandler(async (req, res) => {
     const {newPassword, confirmNewPassword } = req.body;
     const resetToken = req.cookies?.resetToken;
     if (!resetToken) {
-        throw new ApiError("Reset token is required", 400);
+        throw new ApiError(400, "Reset token is required");
     }
 
     if (!newPassword) {
-        throw new ApiError("New password is required", 400);
+        throw new ApiError(400, "New password is required");
     }
 
     if (!confirmNewPassword) {
-        throw new ApiError("Confirm new password is required", 400);
+        throw new ApiError(400, "Confirm new password is required");
     }
 
     if (newPassword !== confirmNewPassword) {
-        throw new ApiError("Passwords do not match", 400);
+        throw new ApiError(400,"Passwords do not match");
     }
 
     try {
