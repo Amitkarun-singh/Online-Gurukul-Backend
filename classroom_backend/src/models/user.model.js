@@ -20,12 +20,6 @@ const userSchema = new mongoose.Schema({
     select: false,
     trim: true,
   },
-  confirmPassword: {
-    type: String,
-    required: [true, "Please enter your password"],
-    select: false,
-    trim: true,
-  },
   dob: {
     type: Date,
     required: [true, "Please enter your date of birth"],
@@ -43,6 +37,16 @@ const userSchema = new mongoose.Schema({
     required: [true, "Please enter your role"],
     enum: ["student", "teacher", "admin"],
     default: "student",
+  },
+  otp: {
+    type: String,
+  },
+  otpExpireTime: {
+    type: Date,
+  },
+  otpEmail: {
+    type: String,
+    trim: true,
   },
   avatar: {
     type: String,
