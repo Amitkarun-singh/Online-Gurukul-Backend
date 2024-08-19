@@ -86,7 +86,8 @@ const createClassRoom = asyncHandler(async (req, res) => {
             classroomCode,
             classroomOwnerId: [req.user?._id],
         });
-
+        currentUser.classroomID.push(classroom._id);
+        await currentUser.save();
         return res
         .status(201)
         .json(new ApiResponse(

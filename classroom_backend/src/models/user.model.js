@@ -38,6 +38,16 @@ const userSchema = new mongoose.Schema({
     enum: ["student", "teacher", "admin"],
     default: "student",
   },
+  otp: {
+    type: String,
+  },
+  otpExpireTime: {
+    type: Date,
+  },
+  otpEmail: {
+    type: String,
+    trim: true,
+  },
   avatar: {
     type: String,
     required: [true, "Please upload your photo"],
