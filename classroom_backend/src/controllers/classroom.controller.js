@@ -35,26 +35,29 @@ const getClassRoom = asyncHandler(async (req, res) => {
 });
 
 const getAllClassRoomUser = asyncHandler(async (req, res) => {
-    const classroomId = req.params.classroomId;
+    const userId = req.user?._id;
 
-    if (!classroomId) {
-        throw new ApiError(400, "Classroom ID is required");
+    if(!userId){
+        throw new ApiError(400, "Logged in first");
     }
 
     try {
-        const classroom = await Classroom.findById(classroomId);
+        const classrooms = await Classroom.find({ 
+            $or: [
+                { classroomMembersID: userId },
+                { classroomOwnerId: userId }
+            ]
+        });
 
-        if(!classroom){
-            throw new ApiError(404, "Classroom not found");
+        if (!classrooms || classrooms.length === 0) {
+            return res.status(404).json(new ApiError(404, "No classrooms found for this user"));
         }
-
-        const users = await User.find({classroomID: classroomId});
 
         return res
         .status(200)
         .json(new ApiResponse(
             200,
-            users,
+            classrooms,
             "Users fetched Successfully"
         ))
 
