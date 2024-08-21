@@ -198,74 +198,89 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
     .json(new ApiResponse(200, user, "Account details updated successfully"))
 });
 
-const registerUser = asyncHandler( async (req, res) => {
-  // get user details from frontend
-  // validation - not empty
-  // check if user already exists: username, email
-  // check for images, check for avatar
-  // upload them to cloudinary, avatar
-  // create user object - create entry in db
-  // remove password and refresh token field from response
-  // check for user creation
-  // return res
+const registerUser = asyncHandler(async (req, res, next) => {
+    try {
+        const { fullName, email, username, password, confirmPassword, dob, role } = req.body;
 
+        // Check for empty fields
+        if ([fullName, email, username, password, confirmPassword, dob, role].some((field) => field?.trim() === "")) {
+            throw new ApiError(400, "All fields are required");
+        }
 
-    const {fullName, email, username, password, confirmPassword ,dob, role } = req.body
+        // Email validation
+        if (!email.includes("@") || (!email.includes(".com") && !email.includes(".in"))) {
+            throw new ApiError(400, "Invalid Email");
+        }
 
-    if (
-        [fullName, email, username, password, confirmPassword].some((field) => field?.trim() === "")
-    ) {
-        throw new ErrorHandler("All fields are required", 400)
+        // Username validation
+        if (username.length < 6) {
+            throw new ApiError(400, "Username must be at least 6 characters");
+        }
+        if (!username.match(/^[a-zA-Z0-9_]+$/)) {
+            throw new ApiError(400, "Username must contain only letters, numbers, and underscores");
+        }
+
+        // Password match validation
+        if (password !== confirmPassword) {
+            throw new ApiError(400, "Passwords do not match");
+        }
+
+        // Check if user already exists
+        const existedUser = await User.findOne({
+            $or: [{ username: username.toLowerCase() }, { email }]
+        });
+
+        if (existedUser) {
+            throw new ApiError(409, "User with email or username already exists");
+        }
+
+        //add date validation age should be more than 7 years
+        const currentDate = new Date();
+        const birthDate = new Date(dob);
+        const age = currentDate.getFullYear() - birthDate.getFullYear();
+        const monthDifference = currentDate.getMonth() - birthDate.getMonth();
+        if (monthDifference < 0 || (monthDifference === 0 && currentDate.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        if (age < 7) {
+            throw new ApiError(400, "Age should be more than 7 years");
+        }
+
+        // Check for avatar file
+        const avatarLocalPath = req.files?.avatar[0]?.path;
+        if (!avatarLocalPath) {
+            throw new ApiError(400, "Avatar file is required");
+        }
+
+        // Upload avatar to Cloudinary
+        const avatar = await uploadOnCloudinary(avatarLocalPath);
+        if (!avatar) {
+            throw new ApiError(400, "Avatar file is required");
+        }
+
+        // Create user
+        const user = await User.create({
+            fullName,
+            avatar: avatar.url,
+            email,
+            password,
+            username: username.toLowerCase(),
+            dob,
+            role
+        });
+
+        // Fetch created user without password and refreshToken
+        const createdUser = await User.findById(user._id).select("-password -refreshToken");
+        if (!createdUser) {
+            throw new ApiError(500, "Something went wrong while registering the user");
+        }
+
+        return res.status(201).json(
+            new ApiResponse(200, createdUser, "User registered Successfully")
+        );
+    } catch (error) {
+        next(new ApiError(500, error.message || "An error occurred while registering"));
     }
-
-    if(password != confirmPassword){
-        throw new ErrorHandler("Passwords do not match", 400);
-    }
-
-    const existedUser = await User.findOne({
-        $or: [{ username }, { email }]
-    })
-
-    if (existedUser) {
-        throw new ErrorHandler("User with email or username already exists", 409)
-    }
-    //console.log(req.files);
-
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    
-
-    if (!avatarLocalPath) {
-        throw new ErrorHandler("Avatar file is required", 400)
-    }
-
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
-
-    if (!avatar) {
-        throw new ErrorHandler("Avatar file is required", 400)
-    }
-
-    const user = await User.create({
-        fullName,
-        avatar: avatar.url,
-        email, 
-        password,
-        username: username.toLowerCase(),
-        dob,
-        role
-    })
-
-    const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken"
-    )
-
-    if (!createdUser) {
-        throw new ErrorHandler("Something went wrong while registering the user", 500)
-    }
-
-    return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered Successfully")
-    )
-
 });
 
 const logoutUser = asyncHandler(async(req, res) => {
