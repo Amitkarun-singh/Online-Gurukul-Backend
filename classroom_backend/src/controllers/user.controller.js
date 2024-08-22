@@ -499,7 +499,6 @@ const verifyOTP = asyncHandler(async (req, res) => {
     }
 });
 
-
 const resetPassword = asyncHandler(async (req, res) => {
     const {newPassword, confirmNewPassword } = req.body;
     const resetToken = req.cookies?.resetToken;

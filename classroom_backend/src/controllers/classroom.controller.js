@@ -44,20 +44,48 @@ const getAllClassRoomUser = asyncHandler(async (req, res) => {
     try {
         const classrooms = await Classroom.find({ 
             $or: [
-                { classroomMembersID: userId },
-                { classroomOwnerId: userId }
+            { classroomMembersID: userId },
+            { classroomOwnerId: userId }
             ]
-        });
+        })
 
         if (!classrooms || classrooms.length === 0) {
             return res.status(404).json(new ApiError(404, "No classrooms found for this user"));
         }
 
+        const classroomDetails = await Classroom.aggregate([
+            {
+                $match: {
+                    _id: { $in: classrooms.map(classroom => classroom._id) }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "classroomOwnerId",
+                    foreignField: "_id",
+                    as: "classroomOwners"
+                }
+            },
+            {
+                $unwind: "$classroomOwners"
+            },
+            {
+                $project: {
+                    _id: 1,
+                    classroomName: 1,
+                    classroomDesc: 1,
+                    classroomMembersID: 1,
+                    classroomOwnerName: "$classroomOwners.fullName"
+                }
+            }
+        ]);
+
         return res
         .status(200)
         .json(new ApiResponse(
             200,
-            classrooms,
+            classroomDetails,
             "Users fetched Successfully"
         ))
 
