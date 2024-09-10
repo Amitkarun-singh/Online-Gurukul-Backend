@@ -97,8 +97,25 @@ const getAllClassRoomUser = asyncHandler(async (req, res) => {
 const createClassRoom = asyncHandler(async (req, res) => {
     const {classroomName, classroomDesc, classroomCode} = req.body;
 
-    if([classroomCode, classroomDesc, classroomName].some((field) => field?.trim() === "")) {
-        throw new ApiError(400, "All the fields are required")
+    if (!classroomName || classroomName.trim() === "") {
+        throw new ApiError(400, "Classroom name is required");
+    }
+
+    if (!classroomDesc || classroomDesc.trim() === "") {
+        throw new ApiError(400, "Classroom description is required");
+    }
+
+    const wordCount = classroomDesc.trim().split(/\s+/).length;
+    if (wordCount < 20) {
+        throw new ApiError(400, "Classroom description must be at least 20 words");
+    }
+
+    if (!classroomCode || classroomCode.trim() === "") {
+        throw new ApiError(400, "Classroom code is required");
+    }
+
+    if (classroomCode.length !== 7 || /\s/.test(classroomCode)) {
+        throw new ApiError(400, "Classroom code must be exactly 7 characters long and contain no spaces");
     }
 
     try {
@@ -111,6 +128,16 @@ const createClassRoom = asyncHandler(async (req, res) => {
         if (userRole !== "teacher") {
             throw new ApiError(403, "You are not authorized to create a classroom");
         }
+
+        const classroomNameExists = await Classroom.findOne({classroomName : classroomName});
+        if (classroomNameExists) {
+            throw new ApiError(400, "Classroom name already exists");
+        }
+        const classroomCodeExists = await Classroom.findOne({classroomCode : classroomCode});
+        if (classroomCodeExists) {
+            throw new ApiError(400, "Classroom code already exists");
+        }
+
         const classroom = await Classroom.create({
             classroomName,
             classroomDesc,
@@ -384,7 +411,7 @@ const joinClassRoom = asyncHandler(async (req, res) => {
             throw new ApiError(404, "User not found");
         }
 
-        if (classroom.classroomMembersID.includes(user._id)) {
+        if (classroom.classroomMembersID.includes(user._id) || classroom.classroomOwnerId.includes(user._id)) {
             throw new ApiError(400, "You are already a member of this classroom");
         }
 
