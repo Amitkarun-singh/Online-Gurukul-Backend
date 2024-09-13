@@ -237,7 +237,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
         //add date validation age should be more than 7 years
         const currentDate = new Date();
         const birthDate = new Date(dob);
-        const age = currentDate.getFullYear() - birthDate.getFullYear();
+        let age = currentDate.getFullYear() - birthDate.getFullYear();
         const monthDifference = currentDate.getMonth() - birthDate.getMonth();
         if (monthDifference < 0 || (monthDifference === 0 && currentDate.getDate() < birthDate.getDate())) {
             age--;
