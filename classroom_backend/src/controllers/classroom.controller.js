@@ -35,26 +35,57 @@ const getClassRoom = asyncHandler(async (req, res) => {
 });
 
 const getAllClassRoomUser = asyncHandler(async (req, res) => {
-    const classroomId = req.params.classroomId;
+    const userId = req.user?._id;
 
-    if (!classroomId) {
-        throw new ApiError(400, "Classroom ID is required");
+    if(!userId){
+        throw new ApiError(400, "Logged in first");
     }
 
     try {
-        const classroom = await Classroom.findById(classroomId);
+        const classrooms = await Classroom.find({ 
+            $or: [
+            { classroomMembersID: userId },
+            { classroomOwnerId: userId }
+            ]
+        })
 
-        if(!classroom){
-            throw new ApiError(404, "Classroom not found");
+        if (!classrooms || classrooms.length === 0) {
+            return res.status(404).json(new ApiError(404, "No classrooms found for this user"));
         }
 
-        const users = await User.find({classroomID: classroomId});
+        const classroomDetails = await Classroom.aggregate([
+            {
+                $match: {
+                    _id: { $in: classrooms.map(classroom => classroom._id) }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "classroomOwnerId",
+                    foreignField: "_id",
+                    as: "classroomOwners"
+                }
+            },
+            {
+                $unwind: "$classroomOwners"
+            },
+            {
+                $project: {
+                    _id: 1,
+                    classroomName: 1,
+                    classroomDesc: 1,
+                    classroomMembersID: 1,
+                    classroomOwnerName: "$classroomOwners.fullName"
+                }
+            }
+        ]);
 
         return res
         .status(200)
         .json(new ApiResponse(
             200,
-            users,
+            classroomDetails,
             "Users fetched Successfully"
         ))
 
@@ -66,8 +97,25 @@ const getAllClassRoomUser = asyncHandler(async (req, res) => {
 const createClassRoom = asyncHandler(async (req, res) => {
     const {classroomName, classroomDesc, classroomCode} = req.body;
 
-    if([classroomCode, classroomDesc, classroomName].some((field) => field?.trim() === "")) {
-        throw new ApiError(400, "All the fields are required")
+    if (!classroomName || classroomName.trim() === "") {
+        throw new ApiError(400, "Classroom name is required");
+    }
+
+    if (!classroomDesc || classroomDesc.trim() === "") {
+        throw new ApiError(400, "Classroom description is required");
+    }
+
+    const wordCount = classroomDesc.trim().split(/\s+/).length;
+    if (wordCount < 20) {
+        throw new ApiError(400, "Classroom description must be at least 20 words");
+    }
+
+    if (!classroomCode || classroomCode.trim() === "") {
+        throw new ApiError(400, "Classroom code is required");
+    }
+
+    if (classroomCode.length !== 7 || /\s/.test(classroomCode)) {
+        throw new ApiError(400, "Classroom code must be exactly 7 characters long and contain no spaces");
     }
 
     try {
@@ -80,6 +128,16 @@ const createClassRoom = asyncHandler(async (req, res) => {
         if (userRole !== "teacher") {
             throw new ApiError(403, "You are not authorized to create a classroom");
         }
+
+        const classroomNameExists = await Classroom.findOne({classroomName : classroomName});
+        if (classroomNameExists) {
+            throw new ApiError(400, "Classroom name already exists");
+        }
+        const classroomCodeExists = await Classroom.findOne({classroomCode : classroomCode});
+        if (classroomCodeExists) {
+            throw new ApiError(400, "Classroom code already exists");
+        }
+
         const classroom = await Classroom.create({
             classroomName,
             classroomDesc,
@@ -353,7 +411,7 @@ const joinClassRoom = asyncHandler(async (req, res) => {
             throw new ApiError(404, "User not found");
         }
 
-        if (classroom.classroomMembersID.includes(user._id)) {
+        if (classroom.classroomMembersID.includes(user._id) || classroom.classroomOwnerId.includes(user._id)) {
             throw new ApiError(400, "You are already a member of this classroom");
         }
 
@@ -374,6 +432,58 @@ const joinClassRoom = asyncHandler(async (req, res) => {
     }
 });
 
+const searchClassRooms = asyncHandler(async (req, res) => {
+    const { searchQuery } = req.query;
+
+    if (!searchQuery || searchQuery.trim() === "") {
+        throw new ApiError(400, "Search query is required");
+    }
+
+    try {
+        const classrooms = await Classroom.aggregate([
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "classroomOwnerId",
+                    foreignField: "_id",
+                    as: "classroomOwners"
+                }
+            },
+            {
+                $unwind: "$classroomOwners"
+            },
+            {
+                $match: {
+                    $or: [
+                        { classroomName: { $regex: searchQuery, $options: "i" } }, 
+                        { "classroomOwners.fullName": { $regex: searchQuery, $options: "i" } } 
+                    ]
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    classroomName: 1,
+                    classroomDesc: 1,
+                    classroomMembersID: 1,
+                    classroomOwnerName: "$classroomOwners.fullName"
+                }
+            }
+        ]);
+
+        if (!classrooms || classrooms.length === 0) {
+            return res.status(404).json(new ApiError(404, "No classrooms found"));
+        }
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, classrooms, "Classrooms fetched successfully"));
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while searching classrooms");
+    }
+});
+
+
 export {
     getClassRoom,
     getAllClassRoomUser,
@@ -384,5 +494,6 @@ export {
     makeClassRoomOwner,
     removeClassRoomMember,
     leaveClassRoom,
-    joinClassRoom
+    joinClassRoom,
+    searchClassRooms
 }

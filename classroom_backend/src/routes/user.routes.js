@@ -41,5 +41,6 @@ userRouter.route("/verify-otp").post(verifyOTP)
 userRouter.route("/reset-password").post(resetPassword)
 userRouter.route("/resend-otp").post(resendOTP)
 
+
 userRouter.route("/avatar").patch(isAuthenticated, upload.single("avatar"), updateUserAvatar)
 export default userRouter;
