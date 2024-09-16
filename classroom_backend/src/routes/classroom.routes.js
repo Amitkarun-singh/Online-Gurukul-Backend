@@ -9,7 +9,8 @@ import {
     makeClassRoomOwner,
     removeClassRoomMember,
     leaveClassRoom,
-    joinClassRoom
+    joinClassRoom,
+    searchClassRooms
 } from "../controllers/classroom.controller.js";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
 
@@ -19,6 +20,7 @@ router.use(isAuthenticated); // Apply isAuthenticated middleware to all routes i
 router.route("/")
     .post(createClassRoom)
     .get(getAllClassRoomUser);
+router.route("/search").get(searchClassRooms);
 router.route("/:classroomId")
     .get(getClassRoom)
     .patch(updateClassRoom)
