@@ -14,17 +14,19 @@ const getClassRoom = asyncHandler(async (req, res) => {
     }
 
     try {
-        const classroom = await Classroom.findById(classroomId).populate("classroomMembersID");
+        const classroom = await Classroom.findById(classroomId).populate("classroomMembersID").populate("classroomOwnerId", "fullName");
     
         if(!classroom){
             throw new ApiError(404, "Classroom not found");
         }
 
+        const classOwnerName = classroom.classroomOwnerId.fullName;
+
         return res
         .status(200)
         .json(new ApiResponse(
             200,
-            classroom,
+            { ...classroom.toObject(), classOwnerName },
             "Classroom fetched Successfully"
         ))
     
