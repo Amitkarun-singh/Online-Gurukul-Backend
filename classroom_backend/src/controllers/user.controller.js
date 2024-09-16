@@ -61,7 +61,9 @@ const loginUser = asyncHandler(async (req, res, next) => {
 
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
+        sameSite: "none",
+        maxAge: 264 * 60 * 60 * 1000
     }
 
     return res
@@ -237,7 +239,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
         //add date validation age should be more than 7 years
         const currentDate = new Date();
         const birthDate = new Date(dob);
-        const age = currentDate.getFullYear() - birthDate.getFullYear();
+        let age = currentDate.getFullYear() - birthDate.getFullYear();
         const monthDifference = currentDate.getMonth() - birthDate.getMonth();
         if (monthDifference < 0 || (monthDifference === 0 && currentDate.getDate() < birthDate.getDate())) {
             age--;
@@ -284,28 +286,32 @@ const registerUser = asyncHandler(async (req, res, next) => {
 });
 
 const logoutUser = asyncHandler(async(req, res) => {
-    await User.findByIdAndUpdate(
-        req.user._id,
-        {
-            $unset: {
-                refreshToken: 1 // this removes the field from document
+    try {
+        await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $unset: {
+                    refreshToken: 1 
+                }
+            },
+            {
+                new: true
             }
-        },
-        {
-            new: true
+        )
+
+        const options = {
+            httpOnly: true,
+            secure: true
         }
-    )
 
-    const options = {
-        httpOnly: true,
-        secure: true
+        return res
+        .status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User logged Out"))
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while logging out");
     }
-
-    return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, {}, "User logged Out"))
 });
 
 const updateUserAvatar = asyncHandler(async (req, res) => {

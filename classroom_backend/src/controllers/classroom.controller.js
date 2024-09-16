@@ -432,6 +432,58 @@ const joinClassRoom = asyncHandler(async (req, res) => {
     }
 });
 
+const searchClassRooms = asyncHandler(async (req, res) => {
+    const { searchQuery } = req.query;
+
+    if (!searchQuery || searchQuery.trim() === "") {
+        throw new ApiError(400, "Search query is required");
+    }
+
+    try {
+        const classrooms = await Classroom.aggregate([
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "classroomOwnerId",
+                    foreignField: "_id",
+                    as: "classroomOwners"
+                }
+            },
+            {
+                $unwind: "$classroomOwners"
+            },
+            {
+                $match: {
+                    $or: [
+                        { classroomName: { $regex: searchQuery, $options: "i" } }, 
+                        { "classroomOwners.fullName": { $regex: searchQuery, $options: "i" } } 
+                    ]
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    classroomName: 1,
+                    classroomDesc: 1,
+                    classroomMembersID: 1,
+                    classroomOwnerName: "$classroomOwners.fullName"
+                }
+            }
+        ]);
+
+        if (!classrooms || classrooms.length === 0) {
+            return res.status(404).json(new ApiError(404, "No classrooms found"));
+        }
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, classrooms, "Classrooms fetched successfully"));
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while searching classrooms");
+    }
+});
+
+
 export {
     getClassRoom,
     getAllClassRoomUser,
@@ -442,5 +494,6 @@ export {
     makeClassRoomOwner,
     removeClassRoomMember,
     leaveClassRoom,
-    joinClassRoom
+    joinClassRoom,
+    searchClassRooms
 }
