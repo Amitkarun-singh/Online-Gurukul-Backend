@@ -18,7 +18,12 @@ const createModule = asyncHandler(async(req, res)=> {
         const classroom = await Classroom.findById(classroomId);
 
         if(!classroom){
-            throw new ApiError(400, "Classroom not found")
+            throw new ApiError(400, "Classroom not found");
+        }
+
+        const existingModule = await Module.findOne({ moduleName: moduleName, _id: { $in: classroom.ModuleID } });
+        if (existingModule) {
+            throw new ApiError(400, "Module with this name already exists in the classroom");
         }
 
         if(!classroom.classroomOwnerId.includes(req.user._id.toString())){
@@ -43,7 +48,11 @@ const createModule = asyncHandler(async(req, res)=> {
             )
         );
     } catch (error) {
-        throw new ApiError(500, error.message || "An error occurred while creating the module")
+        if (error.code === 11000) {
+            throw new ApiError(400, "Module with this name already exists");
+        } else {
+            throw new ApiError(500, "An error occurred while creating the module");
+        }
     }
 });
 
@@ -102,7 +111,7 @@ const getAllModules = asyncHandler(async(req, res)=> {
             throw new ApiError(400, "Classroom not found");
         }
 
-        if (!classroom.classroomOwnerId.includes(req.user._id.toString()) && !classroom.classroomMemberIds.includes(req.user._id.toString())) {
+        if (!classroom.classroomOwnerId.includes(req.user._id.toString()) && !classroom.classroomMembersID.includes(req.user._id.toString())) {
             throw new ApiError(403, "You are not a member of this classroom");
         }
 

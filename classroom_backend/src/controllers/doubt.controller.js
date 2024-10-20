@@ -5,6 +5,7 @@ import { Module } from "../models/module.model.js";
 import { Video } from "../models/video.model.js";
 import { Lecture } from "../models/lecture.model.js"
 import { Doubt } from "../models/doubt.model.js";
+import { User } from "../models/user.model.js";
 
 const addDoubt = asyncHandler(async(req, res) => {
     const { lectureId, videoId } = req.params
@@ -36,6 +37,8 @@ const addDoubt = asyncHandler(async(req, res) => {
         lecture.doubt.push(doubt._id);
         await lecture.save();
         await doubt.save()
+        video.doubt.push(doubt._id);
+        await video.save();
         return res
         .status(200)
         .json(
@@ -93,14 +96,35 @@ const getAllDoubts = asyncHandler(async(req, res) => {
             throw new ApiError(404, "Video not found");
         }
         const doubts = await Doubt.find({ video: videoId });
+        const formattedDoubts = await Promise.all(doubts.map(async (doubt) => {
+            const student = await User.findById(doubt.student);
+            const formattedReplies = await Promise.all(doubt.replies.map(async (reply) => {
+            const replier = await User.findById(reply.replier);
+            return {
+                replyDescription: reply.replyDescription,
+                replierName: replier.fullName,
+                replierAvatar: replier.avatar,
+                createdAt: reply.createdAt
+            };
+            }));
+            return {
+            id: doubt._id,
+            doubtDescription: doubt.doubtDescription,
+            studentName: student.fullName,
+            studentAvatar: student.avatar,
+            replies: formattedReplies,
+            createdAt: doubt.createdAt
+            };
+        }));
+
         return res
             .status(200)
             .json(
-                new ApiResponse(
-                    200,
-                    doubts,
-                    "Doubts found successfully"
-                )
+            new ApiResponse(
+                200,
+                formattedDoubts,
+                "Doubts found successfully"
+            )
             );
     } catch (error) {
         throw new ApiError(500, error.message || "An error occurred while fetching doubts");
@@ -171,6 +195,8 @@ const deleteDoubts = asyncHandler(async(req, res) => {
         await doubt.deleteOne({_id: doubtId});
         lecture.doubt.pull(doubtId);
         await lecture.save();
+        Video.doubt.pull(doubtId);
+        await video.save();
         return res
         .status(200)
         .json(
@@ -185,10 +211,47 @@ const deleteDoubts = asyncHandler(async(req, res) => {
     }
 });
 
+const addDoubtReply = asyncHandler(async (req, res) => {
+    const { doubtId } = req.params;
+    const { replyDescription } = req.body;
+    if (!doubtId) {
+        throw new ApiError(400, "Doubt Id is required");
+    }
+    if (!replyDescription) {
+        throw new ApiError(400, "Reply Description is required");
+    }
+    try {
+        const doubt = await Doubt.findById(doubtId);
+        if (!doubt) {
+            throw new ApiError(404, "Doubt not found");
+        }
+        const reply = {
+            replyDescription: replyDescription,
+            replier: req.user._id,
+            createdAt: new Date()
+        };
+        doubt.replies.push(reply);
+        await doubt.save();
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    reply,
+                    "Reply added successfully"
+                )
+            );
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while adding the reply");
+    }
+});
+
+
 export {
     addDoubt,
     getDoubts,
     getAllDoubts,
     updateDoubts,
-    deleteDoubts
+    deleteDoubts,
+    addDoubtReply
 }

@@ -19,7 +19,7 @@ router.route("/:classroomId/:moduleId")
     .patch(updateModule)
     .delete(deleteModule);
 
-router.route("/")
+router.route("/:classroomId")
     .get(getAllModules);
 
 export default router;
