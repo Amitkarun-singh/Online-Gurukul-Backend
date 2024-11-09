@@ -101,7 +101,9 @@ const getAllDoubts = asyncHandler(async(req, res) => {
             const formattedReplies = await Promise.all(doubt.replies.map(async (reply) => {
             const replier = await User.findById(reply.replier);
             return {
+                id: reply._id,
                 replyDescription: reply.replyDescription,
+                replierId: replier._id,
                 replierName: replier.fullName,
                 replierAvatar: replier.avatar,
                 createdAt: reply.createdAt
@@ -110,6 +112,7 @@ const getAllDoubts = asyncHandler(async(req, res) => {
             return {
             id: doubt._id,
             doubtDescription: doubt.doubtDescription,
+            studentId: student._id,
             studentName: student.fullName,
             studentAvatar: student.avatar,
             replies: formattedReplies,
@@ -246,6 +249,40 @@ const addDoubtReply = asyncHandler(async (req, res) => {
     }
 });
 
+const deleteDoubtReply = asyncHandler(async (req, res) => {
+    const { doubtId, replyId } = req.params;
+    if (!doubtId) {
+        throw new ApiError(400, "Doubt Id is required");
+    }
+    if (!replyId) {
+        throw new ApiError(400, "Reply Id is required");
+    }
+    try {
+        const doubt = await Doubt.findById(doubtId);
+        if (!doubt) {
+            throw new ApiError(404, "Doubt not found");
+        }
+        console.log("Doubt Replies:", doubt.replies);
+        const reply = doubt.replies.id(replyId);
+        if (reply === null) {
+            throw new ApiError(404, "Reply not found");
+        }
+        doubt.replies.pull(replyId);
+        await doubt.save();
+        return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    {},
+                    "Reply deleted successfully"
+                )
+            );
+    }catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while deleting the reply");
+    }
+});
+
 
 export {
     addDoubt,
@@ -253,5 +290,6 @@ export {
     getAllDoubts,
     updateDoubts,
     deleteDoubts,
-    addDoubtReply
+    addDoubtReply,
+    deleteDoubtReply
 }
