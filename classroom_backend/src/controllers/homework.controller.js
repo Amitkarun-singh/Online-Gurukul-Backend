@@ -228,16 +228,28 @@ const homeworkSubmission = asyncHandler(async (req, res) => {
             throw new ApiError(500, "An error occurred while uploading submission file");
         }
 
-        homework.submissions.push({
+        const submission = {
             submissionFile: submissionFile.secure_url,
-        });
+            studentId: req.user._id,
+            createdAt: new Date()
+        };
+
+        homework.submissions.push(submission);
         await homework.save();
+
+        const user = req.user; 
+        const submissionDetails = {
+            userId: user._id,
+            userName: user.fullName,
+            submissionFile: submissionFile.secure_url,
+        };
 
         return res
             .status(200)
             .json(
                 new ApiResponse(
                     200,
+                    submissionDetails,
                     homework,
                     "Homework submitted successfully"
                 )
@@ -247,10 +259,35 @@ const homeworkSubmission = asyncHandler(async (req, res) => {
     }
 });
 
+const AllhomworkSubmissions = asyncHandler(async(req, res) => {
+    const { homeworkId } = req.params;
+    if(!homeworkId){
+        throw new ApiError(400, "Homework Id is required");
+    }
+    try {
+        const homework = await Homework.findById(homeworkId);
+        if(!homework){
+            throw new ApiError(404, "Homework not found");
+        }
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                homework.submissions,
+                "Homework submissions fetched successfully"
+            )
+        );
+    }catch(error){
+        throw new ApiError(500, error.message || "An error occurred while getting homework submissions")
+    }
+});
+
 export { 
     addHomework, 
     getHomeworks,
     updateHomework, 
     deleteHomework, 
-    homeworkSubmission
+    homeworkSubmission,
+    AllhomworkSubmissions
 };
