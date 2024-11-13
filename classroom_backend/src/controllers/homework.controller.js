@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Module } from "../models/module.model.js";
 import { Homework } from "../models/homework.model.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
+import mongoose from "mongoose";
 
 const addHomework = asyncHandler(async(req, res) => {
     const { moduleId } = req.params;
@@ -205,46 +206,121 @@ const deleteHomework = asyncHandler(async(req, res) => {
     }
 });
 
+
 const homeworkSubmission = asyncHandler(async (req, res) => {
     const { homeworkId } = req.params;
     const submissionFileLocalPath = req.file?.path;
-
+  
     if (!submissionFileLocalPath) {
-        throw new ApiError(400, "Submission file is required");
+      throw new ApiError(400, "Submission file is required");
     }
-
+  
     if (!homeworkId) {
+      throw new ApiError(400, "Homework Id is required");
+    }
+  
+    try {
+      // Check if homework exists
+      const homework = await Homework.findById(homeworkId);
+      if (!homework) {
+        throw new ApiError(404, "Homework not found");
+      }
+  
+      // Upload file to Cloudinary
+      let submissionFile;
+      try {
+        submissionFile = await uploadOnCloudinary(submissionFileLocalPath);
+      } catch (uploadError) {
+        throw new ApiError(500, "Error occurred while uploading the submission file");
+      }
+  
+      if (!submissionFile || !submissionFile.secure_url) {
+        throw new ApiError(500, "An error occurred while uploading submission file");
+      }
+  
+      // Create a submission object
+      const submission = {
+        submissionFile: submissionFile.secure_url,
+        studentId: req.user._id,
+        studentName: req.user.fullName, // Assuming user has a fullName field
+        submittedAt: new Date()
+      };
+  
+      // Add submission to homework and save
+      homework.submissions.push(submission);
+      await homework.save();
+  
+      // Return response
+      const submissionDetails = {
+        userId: req.user._id,
+        userName: req.user.fullName,
+        submissionFile: submissionFile.secure_url,
+      };
+  
+      return res.status(200).json(
+        new ApiResponse(200, submissionDetails, "Homework submitted successfully")
+      );
+    } catch (error) {
+      throw new ApiError(500, error.message || "An error occurred while submitting homework");
+    }
+  });
+  
+const AllhomworkSubmissions = asyncHandler(async(req, res) => {
+    const { homeworkId } = req.params;
+    if(!homeworkId){
         throw new ApiError(400, "Homework Id is required");
     }
-
     try {
-        const homework = await Homework.findById(homeworkId);
-        if (!homework) {
+        const homework = await Homework.findById(homeworkId).populate('submissions.studentId', 'fullName');
+        if(!homework){
             throw new ApiError(404, "Homework not found");
         }
-
-        const submissionFile = await uploadOnCloudinary(submissionFileLocalPath);
-        if (!submissionFile) {
-            throw new ApiError(500, "An error occurred while uploading submission file");
-        }
-
-        homework.submissions.push({
-            submissionFile: submissionFile.secure_url,
-        });
-        await homework.save();
-
         return res
-            .status(200)
-            .json(
-                new ApiResponse(
-                    200,
-                    homework,
-                    "Homework submitted successfully"
-                )
-            );
-    } catch (error) {
-        throw new ApiError(500, error.message || "An error occurred while submitting homework");
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                homework,
+                "Homework submissions fetched successfully"
+            )
+        );
+    }catch(error){
+        throw new ApiError(500, error.message || "An error occurred while getting homework submissions")
+    }
+});
+
+const deleteHomeworkSubmission = asyncHandler(async(req, res) => {
+    const { homeworkId , submissionId } = req.params;
+    if(!homeworkId){
+        throw new ApiError(400, "Homework Id is required");
     }
+    if(!submissionId){
+        throw new ApiError(400, "Submission Id is required");
+    }
+    try {
+        const homework = await Homework.findById(homeworkId);
+        if(!homework){
+            throw new ApiError(404, "Homework not found");
+        }
+        const submission = homework.submissions.id(submissionId);
+        if(!submission){
+            throw new ApiError(404, "Submission not found");
+        }
+        await deleteFromCloudinary(submission.submissionFile);
+        homework.submissions.pull(submissionId);
+        await homework.save();
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                null,
+                "Submission deleted successfully"
+            )
+        );
+    }catch(error){
+        throw new ApiError(500, error.message || "An error occurred while deleting submission")
+    };
 });
 
 export { 
@@ -252,5 +328,7 @@ export {
     getHomeworks,
     updateHomework, 
     deleteHomework, 
-    homeworkSubmission
+    homeworkSubmission,
+    AllhomworkSubmissions,
+    deleteHomeworkSubmission,
 };

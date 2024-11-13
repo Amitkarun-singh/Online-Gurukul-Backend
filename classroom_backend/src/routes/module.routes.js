@@ -12,14 +12,14 @@ const router = Router();
 router.use(isAuthenticated);
 
 router.route("/:classroomId")
-    .post(createModule);
+    .post(createModule)
+    .get(getAllModules);
+    
 
 router.route("/:classroomId/:moduleId")
     .get(getModule)
     .patch(updateModule)
     .delete(deleteModule);
 
-router.route("/")
-    .get(getAllModules);
 
 export default router;

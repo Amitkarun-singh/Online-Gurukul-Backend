@@ -102,7 +102,7 @@ const getAllModules = asyncHandler(async(req, res)=> {
             throw new ApiError(400, "Classroom not found");
         }
 
-        if (!classroom.classroomOwnerId.includes(req.user._id.toString()) && !classroom.classroomMemberIds.includes(req.user._id.toString())) {
+        if (!classroom.classroomOwnerId.includes(req.user._id.toString()) && !classroom.classroomMembersID.includes(req.user._id.toString())) {
             throw new ApiError(403, "You are not a member of this classroom");
         }
 

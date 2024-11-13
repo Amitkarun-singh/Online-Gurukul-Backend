@@ -40,12 +40,16 @@ const homeworkSchema = new Schema(
                     type: String,
                     required: true,
                 },
+                studentId: {
+                    type: Schema.Types.ObjectId,
+                    ref: "User",
+                },
                 submittedAt: {
                     type: Date,
                     default: Date.now,
                 },
-            },
-        ],
+            },
+        ],
     },
     {
         timestamps: true,
