@@ -4,7 +4,6 @@ const moduleSchema = new Schema({
     moduleName: {
         type: String,
         required: [true, "Please enter module name"],
-        unique: true,
         trim: true
     },
     lecture: [

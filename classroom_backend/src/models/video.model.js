@@ -15,7 +15,13 @@ const videoSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: "Lecture",
             required: [true, "Please select a lecture"]
-        }
+        },
+        doubt: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "Doubt"
+            }
+        ]
     },
     {
         timestamps: true

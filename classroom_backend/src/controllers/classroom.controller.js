@@ -250,7 +250,7 @@ const addClassRoomMember = asyncHandler(async (req, res) => {
         }
     
         if(!classroom.classroomOwnerId.includes(req.user._id.toString())){
-            throw new ApiError(403, "You are not authorized to remove members from this classroom");
+            throw new ApiError(403, "You are not authorized to add members from this classroom");
         }
     
         if(classroom.classroomMembersID.includes(user._id)){
