@@ -49,10 +49,6 @@ const getAllClassRoomUser = asyncHandler(async (req, res) => {
             ]
         })
 
-        if (!classrooms || classrooms.length === 0) {
-            return res.status(404).json(new ApiError(404, "No classrooms found for this user"));
-        }
-
         const classroomDetails = await Classroom.aggregate([
             {
                 $match: {
