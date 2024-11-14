@@ -274,7 +274,7 @@ const AllhomworkSubmissions = asyncHandler(async(req, res) => {
         .json(
             new ApiResponse(
                 200,
-                homework.submissions,
+                homework,
                 "Homework submissions fetched successfully"
             )
         );
